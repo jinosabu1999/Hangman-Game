@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futuristic Hangman</title>
+    <style>
+        /* Cyberpunk-inspired color scheme */
+        :root {
+            --neon-blue: #00ffff;
+            --neon-pink: #ff00ff;
+            --dark-bg: #0a0a0a;
+            --light-text: #ffffff;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-pink);
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        #word-display {
+            font-size: 2rem;
+            letter-spacing: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #hangman-drawing {
+            width: 200px;
+            height: 200px;
+            margin: 1rem auto;
+            border: 2px solid var(--neon-pink);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 8rem;
+            text-shadow: 0 0 20px var(--neon-pink);
+        }
+
+        #letter-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        button {
+            background-color: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        button:hover {
+            background-color: var(--neon-blue);
+            color: var(--dark-bg);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        #hint-button {
+            margin-top: 1rem;
+            background-color: var(--neon-pink);
+            color: var(--dark-bg);
+        }
+
+        #hint-display {
+            margin-top: 1rem;
+            font-style: italic;
+        }
+
+        #game-message {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        #new-game-button {
+            margin-top: 1rem;
+            background-color: var(--neon-blue);
+            color: var(--dark-bg);
+            padding: 0.75rem 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        /* Glitch effect */
+        @keyframes glitch {
+            0% {
+                text-shadow: 0.05em 0 0 var(--neon-pink), -0.05em -0.025em 0 var(--neon-blue),
+                    -0.025em 0.05em 0 var(--light-text);
+            }
+            14% {
+                text-shadow: 0.05em 0 0 var(--neon-pink), -0.05em -0.025em 0 var(--neon-blue),
+                    -0.025em 0.05em 0 var(--light-text);
+            }
+            15% {
+                text-shadow: -0.05em -0.025em 0 var(--neon-pink), 0.025em 0.025em 0 var(--neon-blue),
+                    -0.05em -0.05em 0 var(--light-text);
+            }
+            49% {
+                text-shadow: -0.05em -0.025em 0 var(--neon-pink), 0.025em 0.025em 0 var(--neon-blue),
+                    -0.05em -0.05em 0 var(--light-text);
+            }
+            50% {
+                text-shadow: 0.025em 0.05em 0 var(--neon-pink), 0.05em 0 0 var(--neon-blue),
+                    0 -0.05em 0 var(--light-text);
+            }
+            99% {
+                text-shadow: 0.025em 0.05em 0 var(--neon-pink), 0.05em 0 0 var(--neon-blue),
+                    0 -0.05em 0 var(--light-text);
+            }
+            100% {
+                text-shadow: -0.025em 0 0 var(--neon-pink), -0.025em -0.025em 0 var(--neon-blue),
+                    -0.025em -0.05em 0 var(--light-text);
+            }
+        }
+
+        h1:hover {
+            animation: glitch 1s infinite;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .game-container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            #word-display {
+                font-size: 1.5rem;
+            }
+
+            #hangman-drawing {
+                width: 150px;
+                height: 150px;
+                font-size: 6rem;
+            }
+
+            #letter-buttons {
+                grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+            }
+
+            button {
+                padding: 0.3rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Futuristic Hangman</h1>
+        <div id="word-display"></div>
+        <div id="hangman-drawing"></div>
+        <div id="letter-buttons"></div>
+        <button id="hint-button">Get Hint</button>
+        <div id="hint-display"></div>
+        <div id="game-message"></div>
+        <button id="new-game-button">New Game</button>
+    </div>
+
+    <script>
+        // Word list with hints
+        const words = [
+            { word: "CYBERPUNK", hint: "A genre of science fiction set in a lawless subculture of an oppressive society dominated by computer technology" },
+            { word: "NEON", hint: "A type of luminous tube lighting often associated with futuristic cityscapes" },
+            { word: "ANDROID", hint: "A robot with a human appearance" },
+            { word: "HOLOGRAM", hint: "A three-dimensional image formed by the interference of light beams" },
+            { word: "MATRIX", hint: "A virtual reality simulation that people perceive as real" }
+        ];
+
+        let currentWord, currentHint, guessedLetters, wrongGuesses;
+
+        function initializeGame() {
+            const randomIndex = Math.floor(Math.random() * words.length);
+            currentWord = words[randomIndex].word;
+            currentHint = words[randomIndex].hint;
+            guessedLetters = new Set();
+            wrongGuesses = 0;
+
+            updateWordDisplay();
+            updateHangmanDrawing();
+            createLetterButtons();
+            document.getElementById('hint-display').textContent = '';
+            document.getElementById('game-message').textContent = '';
+        }
+
+        function updateWordDisplay() {
+            const wordDisplay = document.getElementById('word-display');
+            wordDisplay.textContent = currentWord
+                .split('')
+                .map(letter => guessedLetters.has(letter) ? letter : '_')
+                .join(' ');
+        }
+
+        function updateHangmanDrawing() {
+            const hangmanDrawing = document.getElementById('hangman-drawing');
+            hangmanDrawing.textContent = wrongGuesses > 0 ? `${wrongGuesses}/6` : '';
+        }
+
+        function createLetterButtons() {
+            const letterButtons = document.getElementById('letter-buttons');
+            letterButtons.innerHTML = '';
+            for (let i = 65; i <= 90; i++) {
+                const letter = String.fromCharCode(i);
+                const button = document.createElement('button');
+                button.textContent = letter;
+                button.addEventListener('click', () => guessLetter(letter));
+                letterButtons.appendChild(button);
+            }
+        }
+
+        function guessLetter(letter) {
+            if (guessedLetters.has(letter)) return;
+
+            guessedLetters.add(letter);
+            if (!currentWord.includes(letter)) {
+                wrongGuesses++;
+            }
+
+            updateWordDisplay();
+            updateHangmanDrawing();
+
+            checkGameStatus();
+        }
+
+        function checkGameStatus() {
+            if (wrongGuesses >= 6) {
+                endGame(false);
+            } else if (!document.getElementById('word-display').textContent.includes('_')) {
+                endGame(true);
+            }
+        }
+
+        function endGame(isWin) {
+            const gameMessage = document.getElementById('game-message');
+            gameMessage.textContent = isWin ? "You won! 🎉" : `Game over. The word was ${currentWord}.`;
+            document.getElementById('letter-buttons').innerHTML = '';
+        }
+
+        document.getElementById('hint-button').addEventListener('click', () => {
+            document.getElementById('hint-display').textContent = currentHint;
+        });
+
+        document.getElementById('new-game-button').addEventListener('click', initializeGame);
+
+        // Initialize the game
+        initializeGame();
+
+        // Add particle background
+        const gameContainer = document.querySelector('.game-container');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.cssText = `
+                position: absolute;
+                width: 2px;
+                height: 2px;
+                background-color: ${Math.random() > 0.5 ? 'var(--neon-blue)' : 'var(--neon-pink)'};
+                top: ${Math.random() * 100}%;
+                left: ${Math.random() * 100}%;
+                opacity: ${Math.random()};
+                animation: float ${5 + Math.random() * 10}s linear infinite;
+            `;
+            gameContainer.appendChild(particle);
+        }
+
+        // Add float animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float {
+                0% { transform: translateY(0) rotate(0deg); }
+                100% { transform: translateY(-100vh) rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
