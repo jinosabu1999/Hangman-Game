@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Futuristic Hangman</title>
+    <title>Hangman Game</title>
     <style>
-        /* Cyberpunk-inspired color scheme */
         :root {
             --neon-blue: #00ffff;
             --neon-pink: #ff00ff;
@@ -110,6 +109,22 @@
             font-size: 1.2rem;
         }
 
+        #timer {
+            font-size: 1.5rem;
+            margin-top: 1rem;
+            color: var(--neon-pink);
+        }
+
+        #question {
+            font-size: 1.5rem;
+            margin-top: 1rem;
+            color: var(--neon-blue);
+            padding: 1rem;
+            border: 1px solid var(--neon-blue);
+            border-radius: 10px;
+            background-color: rgba(0, 255, 255, 0.1);
+        }
+
         /* Glitch effect */
         @keyframes glitch {
             0% {
@@ -179,9 +194,34 @@
 </head>
 <body>
     <div class="game-container">
-        <h1>Futuristic Hangman</h1>
+        <h1>Hangman Game</h1>
+        <div id="question"></div>
         <div id="word-display"></div>
-        <div id="hangman-drawing"></div>
+        <div id="hangman-drawing">
+            <svg width="100%" height="100%" viewBox="0 0 100 100">
+                <!-- Base -->
+                <line x1="20" y1="90" x2="80" y2="90" stroke="var(--neon-blue)" stroke-width="2" />
+                <!-- Vertical pole -->
+                <line x1="30" y1="90" x2="30" y2="10" stroke="var(--neon-blue)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Horizontal pole -->
+                <line x1="30" y1="10" x2="70" y2="10" stroke="var(--neon-blue)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Rope -->
+                <line x1="70" y1="10" x2="70" y2="20" stroke="var(--neon-blue)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Head -->
+                <circle cx="70" cy="30" r="10" stroke="var(--neon-pink)" stroke-width="2" fill="none" class="hangman-part" style="display: none;" />
+                <!-- Body -->
+                <line x1="70" y1="40" x2="70" y2="60" stroke="var(--neon-pink)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Left arm -->
+                <line x1="70" y1="45" x2="60" y2="55" stroke="var(--neon-pink)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Right arm -->
+                <line x1="70" y1="45" x2="80" y2="55" stroke="var(--neon-pink)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Left leg -->
+                <line x1="70" y1="60" x2="60" y2="70" stroke="var(--neon-pink)" stroke-width="2" class="hangman-part" style="display: none;" />
+                <!-- Right leg -->
+                <line x1="70" y1="60" x2="80" y2="70" stroke="var(--neon-pink)" stroke-width="2" class="hangman-part" style="display: none;" />
+            </svg>
+        </div>
+        <div id="timer"></div>
         <div id="letter-buttons"></div>
         <button id="hint-button">Get Hint</button>
         <div id="hint-display"></div>
@@ -190,29 +230,82 @@
     </div>
 
     <script>
-        // Word list with hints
+        // Expanded word list with hints and questions
         const words = [
-            { word: "CYBERPUNK", hint: "A genre of science fiction set in a lawless subculture of an oppressive society dominated by computer technology" },
-            { word: "NEON", hint: "A type of luminous tube lighting often associated with futuristic cityscapes" },
-            { word: "ANDROID", hint: "A robot with a human appearance" },
-            { word: "HOLOGRAM", hint: "A three-dimensional image formed by the interference of light beams" },
-            { word: "MATRIX", hint: "A virtual reality simulation that people perceive as real" }
+            { word: "CYBERPUNK", hint: "A genre of science fiction", question: "What genre features a lawless subculture in an oppressive society dominated by computer technology?" },
+            { word: "NEON", hint: "A type of lighting", question: "What kind of luminous tube lighting is often associated with futuristic cityscapes?" },
+            { word: "ANDROID", hint: "A type of robot", question: "What do you call a robot with a human appearance?" },
+            { word: "HOLOGRAM", hint: "A type of 3D image", question: "What is a three-dimensional image formed by the interference of light beams called?" },
+            { word: "MATRIX", hint: "A virtual reality concept", question: "In sci-fi, what term describes a virtual reality simulation that people perceive as real?" },
+            { word: "CYBORG", hint: "Part human, part machine", question: "What term describes a being with both organic and biomechatronic body parts?" },
+            { word: "DYSTOPIA", hint: "An imagined state or society", question: "What's the term for a fictional society that is undesirable or frightening?" },
+            { word: "ARTIFICIAL", hint: "Not natural", question: "What word describes something made or produced by human beings rather than occurring naturally?" },
+            { word: "VIRTUAL", hint: "Not physically existing", question: "What term is used for something that exists in effect but not in actual fact?" },
+            { word: "FUTURISTIC", hint: "Ahead of the present", question: "How would you describe something that has or involves very modern technology or design?" }
         ];
 
-        let currentWord, currentHint, guessedLetters, wrongGuesses;
+        let currentWord, currentHint, currentQuestion, guessedLetters, wrongGuesses, timerInterval;
 
-        function initializeGame() {
-            const randomIndex = Math.floor(Math.random() * words.length);
-            currentWord = words[randomIndex].word;
-            currentHint = words[randomIndex].hint;
+        async function fetchRandomWord() {
+            try {
+                const response = await fetch('https://random-word-api.herokuapp.com/word');
+                const [word] = await response.json();
+                return await getWordInfo(word);
+            } catch (error) {
+                console.error('Error fetching random word:', error);
+                return words[Math.floor(Math.random() * words.length)];
+            }
+        }
+
+        async function getWordInfo(word) {
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                const data = await response.json();
+                if (data && data[0] && data[0].meanings && data[0].meanings[0]) {
+                    const definition = data[0].meanings[0].definitions[0].definition;
+                    return {
+                        word: word.toUpperCase(),
+                        hint: "Check the definition for a clue",
+                        question: `Definition: ${definition}`
+                    };
+                }
+            } catch (error) {
+                console.error('Error fetching word info:', error);
+            }
+            return {
+                word: word.toUpperCase(),
+                hint: "No specific hint available for this word.",
+                question: `Can you guess this ${word.length}-letter word?`
+            };
+        }
+
+        async function initializeGame() {
+            const wordObj = await fetchRandomWord();
+            currentWord = wordObj.word;
+            currentHint = wordObj.hint;
+            currentQuestion = wordObj.question;
             guessedLetters = new Set();
             wrongGuesses = 0;
 
+            document.getElementById('question').textContent = currentQuestion;
             updateWordDisplay();
             updateHangmanDrawing();
             createLetterButtons();
             document.getElementById('hint-display').textContent = '';
             document.getElementById('game-message').textContent = '';
+
+            // Start the timer
+            let timeLeft = 60;
+            const timerDisplay = document.getElementById('timer');
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time left: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endGame(false);
+                }
+            }, 1000);
         }
 
         function updateWordDisplay() {
@@ -224,8 +317,10 @@
         }
 
         function updateHangmanDrawing() {
-            const hangmanDrawing = document.getElementById('hangman-drawing');
-            hangmanDrawing.textContent = wrongGuesses > 0 ? `${wrongGuesses}/6` : '';
+            const hangmanParts = document.querySelectorAll('.hangman-part');
+            for (let i = 0; i < hangmanParts.length; i++) {
+                hangmanParts[i].style.display = i < wrongGuesses ? 'inline' : 'none';
+            }
         }
 
         function createLetterButtons() {
@@ -255,7 +350,7 @@
         }
 
         function checkGameStatus() {
-            if (wrongGuesses >= 6) {
+            if (wrongGuesses >= 10) {
                 endGame(false);
             } else if (!document.getElementById('word-display').textContent.includes('_')) {
                 endGame(true);
@@ -263,6 +358,7 @@
         }
 
         function endGame(isWin) {
+            clearInterval(timerInterval);
             const gameMessage = document.getElementById('game-message');
             gameMessage.textContent = isWin ? "You won! 🎉" : `Game over. The word was ${currentWord}.`;
             document.getElementById('letter-buttons').innerHTML = '';
